@@ -9,8 +9,11 @@ const calculateHeight = el => {
 
 // Source adapted from: http://stackoverflow.com/a/16324762
 const makeHandler = el => event => {
-  const { scrollTop, scrollHeight } = el;
+  const { scrollTop, scrollHeight, clientHeight } = el;
   const { type, detail, wheelDelta } = event;
+
+  if (scrollHeight === clientHeight) return;
+
   const height = calculateHeight(el);
   const delta = (type === 'DOMMouseScroll' ? detail * -40 : wheelDelta);
   const up = delta > 0;
