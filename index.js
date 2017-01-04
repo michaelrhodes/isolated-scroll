@@ -56,7 +56,7 @@ function makeHandler (el, always) {
 
     if (!always) {
       clearTimeout(timeout)
-      timeout = setTimeout(resetLastScrollTop, 32)
+      timeout = setTimeout(resetLastScrollTop, 64)
     }
 
     var lt = delta > scrollTop
