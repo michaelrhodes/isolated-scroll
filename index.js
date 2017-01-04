@@ -1,7 +1,7 @@
 module.exports = isolate
 
-function isolate (el) {
-  var handler = makeHandler(el)
+function isolate (el, always) {
+  var handler = makeHandler(el, always)
 
   var addEvent = (el.addEventListener || el.attachEvent).bind(el)
   var removeEvent = (el.removeEventListener || el.detachEvent).bind(el)
@@ -29,13 +29,16 @@ function calculateHeight (el) {
 }
 
 // Source adapted from: http://stackoverflow.com/a/16324762
-function makeHandler (el) {
+function makeHandler (el, always) {
+  var lastScrollTop = null
+  var timeout = null
+
   return function (event) {
     var scrollTop = el.scrollTop
     var scrollHeight = el.scrollHeight
     var clientHeight = el.clientHeight
 
-    if (scrollHeight === clientHeight) return
+    if (!always && scrollHeight === clientHeight) return
 
     var type = event.type
     var detail = event.detail
@@ -43,7 +46,6 @@ function makeHandler (el) {
 
     var height = calculateHeight(el)
     var delta = type === 'DOMMouseScroll' ? detail * -40 : wheelDelta
-    var up = delta > 0
 
     function prevent () {
       event.stopPropagation()
@@ -52,13 +54,24 @@ function makeHandler (el) {
       return false
     }
 
-    if (!up && -delta > scrollHeight - height - scrollTop) {
-      el.scrollTop = scrollHeight
+    if (!always) {
+      clearTimeout(timeout)
+      timeout = setTimeout(resetLastScrollTop, 32)
+    }
+
+    var lt = delta > scrollTop
+    var gt = -delta > scrollHeight - height - scrollTop
+
+    if (lt || gt) {
+      if (!always && lastScrollTop === null) return
+      el.scrollTop = lt ? 0 : scrollHeight
       return prevent()
     }
-    else if (up && delta > scrollTop) {
-      el.scrollTop = 0
-      return prevent()
-    }
+
+    lastScrollTop = scrollTop
+  }
+
+  function resetLastScrollTop () {
+    lastScrollTop = null
   }
 }
