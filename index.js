@@ -5,13 +5,14 @@ function isolate (el) {
 
   var addEvent = (el.addEventListener || el.attachEvent).bind(el)
   var removeEvent = (el.removeEventListener || el.detachEvent).bind(el)
+  var wheelEvent = 'onwheel' in el ? 'wheel' :
+    'onmousewheel' in el ? 'mousewheel' :
+    'DOMMouseScroll'
 
-  addEvent('mousewheel', handler)
-  addEvent('DOMMouseScroll', handler)
+  addEvent(wheelEvent, handler)
 
   return function () {
-    removeEvent('mousewheel', handler)
-    removeEvent('DOMMouseScroll', handler)
+    removeEvent(wheelEvent, handler)
   }
 }
 
@@ -38,7 +39,7 @@ function makeHandler (el) {
 
     var type = event.type
     var detail = event.detail
-    var wheelDelta = event.wheelDelta
+    var wheelDelta = event.wheelDelta || event.deltaY
 
     var height = calculateHeight(el)
     var delta = type === 'DOMMouseScroll' ? detail * -40 : wheelDelta
