@@ -1,138 +1,82 @@
-/******/ (function(modules) { // webpackBootstrap
-/******/ 	// The module cache
-/******/ 	var installedModules = {};
+!(function (normal, always) {
+  isolate(normal), isolate(always, true)
 
-/******/ 	// The require function
-/******/ 	function __webpack_require__(moduleId) {
+  function isolate (el, always) {
+    var handler = makeHandler(el, always)
 
-/******/ 		// Check if module is in cache
-/******/ 		if(installedModules[moduleId])
-/******/ 			return installedModules[moduleId].exports;
+    var addEvent = (el.addEventListener || el.attachEvent).bind(el)
+    var removeEvent = (el.removeEventListener || el.detachEvent).bind(el)
+    var wheelEvent = 'onwheel' in el ? 'wheel' :
+      'onmousewheel' in el ? 'mousewheel' :
+      'DOMMouseScroll'
 
-/******/ 		// Create a new module (and put it into the cache)
-/******/ 		var module = installedModules[moduleId] = {
-/******/ 			exports: {},
-/******/ 			id: moduleId,
-/******/ 			loaded: false
-/******/ 		};
+    addEvent(wheelEvent, handler)
 
-/******/ 		// Execute the module function
-/******/ 		modules[moduleId].call(module.exports, module, module.exports, __webpack_require__);
+    return function () {
+      removeEvent(wheelEvent, handler)
+    }
+  }
 
-/******/ 		// Flag the module as loaded
-/******/ 		module.loaded = true;
+  function calculateHeight (el) {
+    // Source adapted from: http://youmightnotneedjquery.com/#outer_height_with_margin
+    var height = el.offsetHeight
 
-/******/ 		// Return the exports of the module
-/******/ 		return module.exports;
-/******/ 	}
+    var style = getComputedStyle(el)
+    var marginTop = style.marginTop
+    var marginBottom = style.marginBottom
 
+    height += parseInt(marginTop, 10) + parseInt(marginBottom, 10)
+    return height
+  }
 
-/******/ 	// expose the modules object (__webpack_modules__)
-/******/ 	__webpack_require__.m = modules;
+  // Source adapted from: http://stackoverflow.com/a/16324762
+  function makeHandler (el, always) {
+    var lastScrollTop = null
+    var timeout = null
 
-/******/ 	// expose the module cache
-/******/ 	__webpack_require__.c = installedModules;
+    return function (event) {
+      var scrollTop = el.scrollTop
+      var scrollHeight = el.scrollHeight
+      var clientHeight = el.clientHeight
 
-/******/ 	// __webpack_public_path__
-/******/ 	__webpack_require__.p = "";
+      if (!always && scrollHeight === clientHeight) return
 
-/******/ 	// Load entry module and return exports
-/******/ 	return __webpack_require__(0);
-/******/ })
-/************************************************************************/
-/******/ ([
-/* 0 */
-/***/ function(module, exports, __webpack_require__) {
+      var type = event.type
+      var detail = event.detail
+      var wheelDelta = event.wheelDelta || event.deltaY
 
-	'use strict';
+      var height = calculateHeight(el)
+      var delta = type === 'DOMMouseScroll' ? detail * -40 : wheelDelta
 
-	var _src = __webpack_require__(1);
+      function prevent () {
+        event.stopPropagation()
+        event.preventDefault()
+        event.returnValue = false
+        return false
+      }
 
-	var _src2 = _interopRequireDefault(_src);
+      if (!always) {
+        clearTimeout(timeout)
+        timeout = setTimeout(resetLastScrollTop, 64)
+      }
 
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+      var lt = delta > scrollTop
+      var gt = -delta > scrollHeight - height - scrollTop
 
-	__webpack_require__(2);
+      if (lt || gt) {
+        if (!always && lastScrollTop === null) return
+        el.scrollTop = lt ? 0 : scrollHeight
+        return prevent()
+      }
 
-	var el = document.getElementById('isolated-scroll');
-	(0, _src2.default)(el);
+      lastScrollTop = scrollTop
+    }
 
-/***/ },
-/* 1 */
-/***/ function(module, exports) {
-
-	'use strict';
-
-	Object.defineProperty(exports, "__esModule", {
-	  value: true
-	});
-	var calculateHeight = function calculateHeight(el) {
-	  // Source adapted from: http://youmightnotneedjquery.com/#outer_height_with_margin
-	  var height = el.offsetHeight;
-
-	  var _getComputedStyle = getComputedStyle(el);
-
-	  var marginTop = _getComputedStyle.marginTop;
-	  var marginBottom = _getComputedStyle.marginBottom;
-
-
-	  height += parseInt(marginTop, 10) + parseInt(marginBottom, 10);
-	  return height;
-	};
-
-	// Source adapted from: http://stackoverflow.com/a/16324762
-	var makeHandler = function makeHandler(el) {
-	  return function (event) {
-	    var scrollTop = el.scrollTop;
-	    var scrollHeight = el.scrollHeight;
-	    var type = event.type;
-	    var detail = event.detail;
-	    var wheelDelta = event.wheelDelta;
-
-	    var height = calculateHeight(el);
-	    var delta = type === 'DOMMouseScroll' ? detail * -40 : wheelDelta;
-	    var up = delta > 0;
-
-	    var prevent = function prevent() {
-	      event.stopPropagation();
-	      event.preventDefault();
-	      event.returnValue = false;
-
-	      return false;
-	    };
-
-	    if (!up && -delta > scrollHeight - height - scrollTop) {
-	      el.scrollTop = scrollHeight;
-	      return prevent();
-	    } else if (up && delta > scrollTop) {
-	      el.scrollTop = 0;
-	      return prevent();
-	    }
-	  };
-	};
-
-	exports.default = function (el) {
-	  var handler = makeHandler(el);
-
-	  var addEvent = (el.addEventListener || el.attachEvent).bind(el);
-	  var removeEvent = (el.removeEventListener || el.detachEvent).bind(el);
-
-	  addEvent('mousewheel', handler);
-	  addEvent('DOMMouseScroll', handler);
-
-	  return function () {
-	    removeEvent('mousewheel', handler);
-	    removeEvent('DOMMouseScroll', handler);
-	  };
-	};
-
-	module.exports = exports['default'];
-
-/***/ },
-/* 2 */
-/***/ function(module, exports, __webpack_require__) {
-
-	module.exports = __webpack_require__.p + "index.html";
-
-/***/ }
-/******/ ]);
+    function resetLastScrollTop () {
+      lastScrollTop = null
+    }
+  }
+})(
+  document.getElementById('isolated-scroll'),
+  document.getElementById('isolated-scroll-always')
+);
